@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tc Predictor — Hydrogen-based Superconductors</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #080c10;
+  --card: rgba(255,255,255,0.02);
+  --border: rgba(255,255,255,0.08);
+  --text: rgba(255,255,255,0.87);
+  --text2: rgba(255,255,255,0.5);
+  --text3: rgba(255,255,255,0.3);
+  --accent: #34d399;
+  --accent-bg: rgba(52,211,153,0.08);
+  --accent-border: rgba(52,211,153,0.3);
+  --error: #f87171;
+  --warn: #fbbf24;
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  padding: 32px 20px;
+  line-height: 1.6;
+}
+
+.container { max-width: 700px; margin: 0 auto; }
+
+/* Header */
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(52,211,153,0.5);
+  display: inline-block; vertical-align: middle; margin-right: 8px;
+}
+.tag {
+  font-size: 11px; color: var(--text3);
+  letter-spacing: 2px; text-transform: uppercase;
+}
+h1 {
+  font-size: 34px; font-weight: 700;
+  letter-spacing: -0.5px; margin: 8px 0 10px;
+}
+h1 sub { font-size: 0.6em; }
+.subtitle { font-size: 14px; color: var(--text2); line-height: 1.7; }
+.ref { font-size: 12px; opacity: 0.6; }
+
+/* Settings */
+.settings-toggle {
+  background: none; border: 1px solid var(--border);
+  color: var(--text2); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 13px; font-family: var(--sans);
+  margin: 20px 0; transition: border-color 0.2s;
+}
+.settings-toggle:hover { border-color: rgba(255,255,255,0.25); }
+.settings-panel {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px;
+}
+.settings-panel label {
+  display: block; font-size: 11px; color: var(--text3);
+  letter-spacing: 0.3px; margin-bottom: 6px;
+}
+.settings-panel input[type="number"] {
+  width: 100%; background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border); border-radius: 6px;
+  color: white; padding: 8px 10px; font-size: 14px;
+  font-family: var(--mono); outline: none;
+}
+.settings-panel input:focus { border-color: var(--accent-border); }
+
+/* Upload */
+.upload-area {
+  border: 2px dashed rgba(255,255,255,0.12);
+  border-radius: 16px; padding: 48px 32px;
+  text-align: center; cursor: pointer;
+  transition: all 0.3s; background: var(--card);
+  margin-bottom: 24px;
+}
+.upload-area.dragging {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.upload-area:hover { border-color: rgba(255,255,255,0.25); }
+.upload-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.6; }
+.upload-text { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.7); margin-bottom: 6px; }
+.upload-hint { font-size: 12px; color: var(--text3); }
+.upload-progress { font-size: 15px; color: var(--accent); font-weight: 500; }
+
+/* Messages */
+.msg-box {
+  border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
+}
+.msg-error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); }
+.msg-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+.msg-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.msg-error .msg-title { color: var(--error); }
+.msg-warn .msg-title { color: var(--warn); }
+.msg-body { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+/* Results */
+.results-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px;
+}
+.results-header {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 20px;
+}
+.results-label {
+  font-size: 11px; color: var(--text3);
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px;
+}
+.results-comp {
+  font-size: 22px; font-weight: 700;
+  color: white; font-family: var(--mono);
+}
+.btn-download {
+  background: var(--accent-bg); border: 1px solid var(--accent-border);
+  color: var(--accent); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 12px; font-family: var(--sans);
+  font-weight: 500; transition: all 0.2s;
+}
+.btn-download:hover { background: rgba(52,211,153,0.2); }
+
+/* Stat grid */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+
+.stat {
+  padding: 14px 16px; border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.stat.highlight {
+  background: linear-gradient(135deg, #0e3a2d 0%, #0a2a20 100%);
+  border: 1px solid var(--accent-border);
+}
+.stat-label {
+  font-size: 11px; color: rgba(255,255,255,0.45);
+  letter-spacing: 0.5px; text-transform: uppercase;
+  margin-bottom: 6px; font-family: var(--sans);
+}
+.stat-value {
+  font-size: 18px; font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  font-family: var(--mono); line-height: 1.2;
+}
+.stat.highlight .stat-value { font-size: 28px; color: var(--accent); }
+.stat-unit {
+  font-size: 12px; color: rgba(255,255,255,0.4);
+  margin-left: 4px; font-weight: 400;
+}
+
+.section-label {
+  font-size: 11px; color: var(--text3);
+  letter-spacing: 1px; text-transform: uppercase;
+  margin: 20px 0 10px;
+}
+
+/* Formula box */
+.formula-box {
+  margin-top: 20px; padding: 16px;
+  background: rgba(0,0,0,0.3); border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.formula-box .fl { font-size: 11px; color: var(--text3); margin-bottom: 8px; letter-spacing: 0.5px; }
+.formula-box code {
+  font-family: var(--mono); font-size: 12px;
+  color: var(--text2); line-height: 2;
+  display: block;
+}
+.formula-box .result { color: var(--accent); font-weight: 700; }
+
+/* Footer */
+.footer {
+  margin-top: 40px; padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 11px; color: rgba(255,255,255,0.25); line-height: 1.8;
+}
+.footer p { margin-top: 6px; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .settings-panel { grid-template-columns: 1fr; }
+  .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+  h1 { font-size: 26px; }
+  .stat.highlight .stat-value { font-size: 22px; }
+}
+
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div style="margin-bottom:36px">
+    <div><span class="dot"></span><span class="tag">Hydrogen Superconductor</span></div>
+    <h1>T<sub>c</sub> Predictor</h1>
+    <p class="subtitle">
+      基于符号回归模型预测含氢超导体的超导转变温度。上传 vasprun.xml 即可在浏览器本地完成计算，无需服务器。<br>
+      <span class="ref">Chen et al., Materials Today Physics 63 (2026) 102073</span>
+    </p>
+  </div>
+
+  <!-- Settings -->
+  <button class="settings-toggle" onclick="toggleSettings()">▸ 参数设置</button>
+  <div id="settingsPanel" class="settings-panel hidden" style="grid-template-columns: 1fr 1fr;">
+    <div>
+      <label title="能量窗口下限（相对费米能级）">E<sub>min</sub> (eV)</label>
+      <input type="number" id="energyMin" value="-1.0" step="0.1">
+    </div>
+    <div>
+      <label title="能量窗口上限（相对费米能级）">E<sub>max</sub> (eV)</label>
+      <input type="number" id="energyMax" value="1.0" step="0.1">
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div id="uploadArea" class="upload-area"
+    ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
+    ondrop="handleDrop(event)" onclick="document.getElementById('fileInput').click()">
+    <input type="file" id="fileInput" accept=".xml" style="display:none" onchange="handleFile(this.files[0])">
+    <div class="upload-icon" id="uploadIcon">📂</div>
+    <div id="uploadText">
+      <div class="upload-text">拖放 vasprun.xml 到此处，或点击选择文件</div>
+      <div class="upload-hint">需要 LORBIT = 10 或 11 的 VASP 计算结果</div>
+    </div>
+    <div id="uploadProgress" class="upload-progress hidden"></div>
+  </div>
+
+  <!-- Messages -->
+  <div id="errorBox" class="msg-box msg-error hidden">
+    <div class="msg-title">✕ 处理失败</div>
+    <div class="msg-body" id="errorMsg"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="resultsCard" class="results-card hidden">
+    <div class="results-header">
+      <div>
+        <div class="results-label">预测结果</div>
+        <div class="results-comp" id="resComp"></div>
+      </div>
+      <button class="btn-download" onclick="downloadResults()">↓ 下载结果</button>
+    </div>
+
+    <div class="grid-2">
+      <div class="stat highlight">
+        <div class="stat-label">Tc (预测)</div>
+        <div class="stat-value" id="resTc"></div>
+      </div>
+      <div class="stat highlight">
+        <div class="stat-label">S (性能指标)</div>
+        <div class="stat-value" id="resS"></div>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="stat">
+        <div class="stat-label">压力 P</div>
+        <div class="stat-value" id="resP"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">带隙 Eg</div>
+        <div class="stat-value" id="resEg"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">费米能 E<sub>F</sub></div>
+        <div class="stat-value" id="resEf"></div>
+      </div>
+    </div>
+
+    <div class="section-label">描述符详情</div>
+    <div class="grid-2">
+      <div class="stat"><div class="stat-label">H<sub>act</sub></div><div class="stat-value" id="resHact"></div></div>
+      <div class="stat"><div class="stat-label">D<sub>p</sub></div><div class="stat-value" id="resDp"></div></div>
+    </div>
+    <div class="grid-4">
+      <div class="stat"><div class="stat-label">IDOS_H</div><div class="stat-value" id="resIdosH"></div></div>
+      <div class="stat"><div class="stat-label">IDOS_H_p</div><div class="stat-value" id="resIdosHp"></div></div>
+      <div class="stat"><div class="stat-label">IDOS_Tot</div><div class="stat-value" id="resIdosTot"></div></div>
+      <div class="stat"><div class="stat-label">IDOS_X</div><div class="stat-value" id="resIdosX"></div></div>
+    </div>
+
+    <div class="section-label">结构信息</div>
+    <div class="grid-3">
+      <div class="stat"><div class="stat-label">N_Tot</div><div class="stat-value" id="resNtot"></div></div>
+      <div class="stat"><div class="stat-label">N_H</div><div class="stat-value" id="resNh"></div></div>
+      <div class="stat"><div class="stat-label">N<sub>H/Tot</sub></div><div class="stat-value" id="resNratio"></div></div>
+    </div>
+
+    <div class="formula-box">
+      <div class="fl">PREDICTION FORMULA</div>
+      <code>
+        T<sub>c</sub> = 3930.62 × H<sub>act</sub> − 0.17 × D<sub>p</sub> − 4.69<br>
+        <span id="formulaDetail"></span>
+        <span class="result" id="formulaResult"></span>
+      </code>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>所有计算完全在浏览器本地运行，不上传任何数据至服务器。</p>
+    <p>模型公式：T<sub>c</sub> = a × H<sub>act</sub> + b × D<sub>p</sub> + c，其中 a=3930.62, b=−0.17, c=−4.69</p>
+    <p>参考文献：Chen et al., "Interpretable descriptors enable prediction of hydrogen-based superconductors at moderate pressures", Materials Today Physics 63 (2026) 102073</p>
+  </div>
+</div>
+
+<script>
+// ===== Constants =====
+const TC_A = 3930.62, TC_B = -0.17, TC_C = -4.69, TC_MGB2 = 39.0;
+const P_ORBS = new Set(["p","px","py","pz"]);
+
+// ===== State =====
+let currentResults = null;
+
+// ===== UI Helpers =====
+function $(id) { return document.getElementById(id); }
+function show(id) { $(id).classList.remove("hidden"); }
+function hide(id) { $(id).classList.add("hidden"); }
+
+function toggleSettings() {
+  const p = $("settingsPanel");
+  const btn = document.querySelector(".settings-toggle");
+  if (p.classList.contains("hidden")) {
+    p.classList.remove("hidden");
+    btn.textContent = "▾ 参数设置";
+  } else {
+    p.classList.add("hidden");
+    btn.textContent = "▸ 参数设置";
+  }
+}
+
+function setProgress(msg) {
+  $("uploadIcon").textContent = "⏳";
+  hide("uploadText");
+  show("uploadProgress");
+  $("uploadProgress").textContent = msg;
+}
+
+function resetUpload() {
+  $("uploadIcon").textContent = "📂";
+  show("uploadText");
+  hide("uploadProgress");
+  hide("errorBox"); hide("resultsCard");
+}
+
+function showError(msg) {
+  resetUpload();
+  $("errorMsg").textContent = msg;
+  show("errorBox");
+}
+
+// ===== Drag & Drop =====
+function handleDragOver(e) { e.preventDefault(); $("uploadArea").classList.add("dragging"); }
+function handleDragLeave(e) { $("uploadArea").classList.remove("dragging"); }
+function handleDrop(e) {
+  e.preventDefault();
+  $("uploadArea").classList.remove("dragging");
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+}
+
+// ===== File Processing =====
+async function handleFile(file) {
+  if (!file) return;
+  hide("errorBox"); hide("resultsCard");
+
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  setProgress("正在读取文件 (" + sizeMB + " MB)...");
+
+  try {
+    const text = await file.text();
+    setProgress("正在解析 vasprun.xml ...");
+    await sleep(30);
+    setProgress("正在提取原子信息与态密度...");
+    await sleep(30);
+
+    const eMin = parseFloat($("energyMin").value) || -1.0;
+    const eMax = parseFloat($("energyMax").value) || 1.0;
+
+    const result = computeAll(text, eMin, eMax);
+
+    currentResults = result;
+    displayResults(result);
+    resetUpload();
+    show("resultsCard");
+
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ===== Core Computation =====
+function trapz(y, x) {
+  let s = 0;
+  for (let i = 1; i < x.length; i++) s += 0.5 * (y[i] + y[i-1]) * (x[i] - x[i-1]);
+  return s;
+}
+
+function extractBetween(text, start, end, fromEnd) {
+  const i = fromEnd ? text.lastIndexOf(start) : text.indexOf(start);
+  if (i === -1) return null;
+  const j = text.indexOf(end, i);
+  if (j === -1) return null;
+  return text.substring(i, j + end.length);
+}
+
+function allRLines(section) {
+  const lines = [], re = /<r>(.*?)<\/r>/g;
+  let m;
+  while ((m = re.exec(section)) !== null)
+    lines.push(m[1].trim().split(/\s+/).map(Number));
+  return lines;
+}
+
+function getFields(section) {
+  const f = [], re = /<field[^>]*>(.*?)<\/field>/g;
+  let m;
+  while ((m = re.exec(section)) !== null) f.push(m[1].trim());
+  return f;
+}
+
+function computeAll(text, eMin, eMax) {
+  // Completeness check
+  const tail = text.slice(-2000);
+  if (!tail.includes("</modeling>"))
+    throw new Error("vasprun.xml 不完整——计算可能仍在运行或已崩溃。");
+
+  // ---- Atoms ----
+  const atomSec = extractBetween(text, "<atominfo>", "</atominfo>");
+  if (!atomSec) throw new Error("无法找到 <atominfo>。");
+  const atomArr = extractBetween(atomSec, '<array name="atoms" >', '</array>');
+  if (!atomArr) throw new Error("无法解析原子列表。");
+  const atoms = [];
+  let am;
+  const are = /<rc>\s*<c>\s*(\S+)\s*<\/c>/g;
+  while ((am = are.exec(atomArr)) !== null) atoms.push(am[1].trim());
+  if (atoms.length === 0) throw new Error("未解析到任何原子。");
+  const nTot = atoms.length;
+  const nH = atoms.filter(a => a === "H").length;
+  if (nH === 0) throw new Error("结构中未发现氢原子。此模型仅适用于含氢超导体。");
+
+  // ---- Pressure ----
+  const stressTag = '<varray name="stress" >';
+  let si = text.lastIndexOf(stressTag);
+  if (si === -1) throw new Error("无法找到应力张量。");
+  const stressSec = text.substring(si, text.indexOf("</varray>", si) + 10);
+  const sRows = [];
+  const vre = /<v>(.*?)<\/v>/g;
+  let vm;
+  while ((vm = vre.exec(stressSec)) !== null)
+    sRows.push(vm[1].trim().split(/\s+/).map(Number));
+  if (sRows.length < 3) throw new Error("应力张量格式无效。");
+  const pressure = (sRows[0][0] + sRows[1][1] + sRows[2][2]) / 3.0 * 0.1;
+
+  // ---- DOS ----
+  const dosSec = extractBetween(text, "<dos>", "</dos>");
+  if (!dosSec) throw new Error("无法找到 DOS 数据。请确认已开启 DOS 计算。");
+
+  // Fermi energy
+  const efm = dosSec.match(/<i\s+name="efermi">\s*([\-\d.eE+]+)\s*<\/i>/);
+  if (!efm) throw new Error("无法找到费米能级。");
+  const efermi = parseFloat(efm[1]);
+
+  // Total DOS
+  const totalSec = extractBetween(dosSec, "<total>", "</total>");
+  if (!totalSec) throw new Error("无法找到总态密度。");
+  const totalSpins = totalSec.split(/<set comment="spin/);
+  const raw1 = allRLines(totalSpins[1] || "");
+  const raw2 = totalSpins.length > 2 ? allRLines(totalSpins[2]) : [];
+  const nE = raw1.length;
+  if (nE === 0) throw new Error("总态密度为空。");
+  const energies = raw1.map(r => r[0]);
+  const totalDos = raw1.map((r,i) => r[1] + (raw2.length > 0 ? raw2[i][1] : 0));
+
+  // Bandgap (informational only, no filtering)
+  const relE = energies.map(e => e - efermi);
+  let vbm = null, cbm = null;
+  for (let i = 0; i < nE; i++) {
+    if (relE[i] >= -5 && relE[i] <= 0 && totalDos[i] > 0) vbm = energies[i];
+  }
+  for (let i = 0; i < nE; i++) {
+    if (relE[i] > 0 && totalDos[i] > 0) { cbm = energies[i]; break; }
+  }
+  const bandgap = (vbm !== null && cbm !== null && cbm > vbm) ? cbm - vbm : 0;
+
+  // Partial DOS
+  const partSec = extractBetween(dosSec, "<partial>", "</partial>");
+  if (!partSec) throw new Error("无法找到分波态密度 (PDOS)。请设置 LORBIT = 10 或 11。");
+
+  const headerSec = extractBetween(partSec, "<array>", "<set>") || "";
+  const fields = getFields(headerSec).slice(1); // skip "energy"
+  const pIdx = [];
+  const allIdx = fields.map((_, i) => i);
+  fields.forEach((f, i) => { if (P_ORBS.has(f.toLowerCase())) pIdx.push(i); });
+
+  // Find data start (second <set> in partial section)
+  const firstSet = partSec.indexOf("<set>");
+  const dataStart = partSec.indexOf("<set>", firstSet + 5);
+  const partData = partSec.substring(dataStart);
+  const allR = allRLines(partData);
+
+  const nSpins = Math.round(allR.length / (nTot * nE));
+  if (nSpins !== 1 && nSpins !== 2)
+    throw new Error("无法确定自旋通道数（PDOS行=" + allR.length + ", 原子=" + nTot + ", 能量点=" + nE + "）。");
+
+  // Energy window mask
+  const mask = relE.map(e => e >= eMin && e <= eMax);
+  const selE = relE.filter((_, i) => mask[i]);
+  const selTotal = totalDos.filter((_, i) => mask[i]);
+  const idosTot = trapz(selTotal, selE);
+  if (idosTot === 0) throw new Error("总 DOS 积分为零。");
+
+  // Per-ion accumulation
+  let idosH = 0, idosHp = 0, idosX = 0;
+  for (let ion = 0; ion < nTot; ion++) {
+    const ionTotal = new Float64Array(nE);
+    const ionP = new Float64Array(nE);
+    for (let sp = 0; sp < nSpins; sp++) {
+      const base = (ion * nSpins + sp) * nE;
+      for (let e = 0; e < nE; e++) {
+        const row = allR[base + e];
+        if (!row) continue;
+        for (const oi of allIdx) ionTotal[e] += (row[oi + 1] || 0);
+        for (const pi of pIdx) ionP[e] += (row[pi + 1] || 0);
+      }
+    }
+    const selIon = Array.from(ionTotal).filter((_, i) => mask[i]);
+    const selIonP = Array.from(ionP).filter((_, i) => mask[i]);
+    const intAll = trapz(selIon, selE);
+    const intP = trapz(selIonP, selE);
+    if (atoms[ion] === "H") { idosH += intAll; idosHp += intP; }
+    else { idosX += intAll; }
+  }
+
+  if (idosX === 0) throw new Error("非氢元素 DOS 积分为零。");
+
+  // Formula
+  const hAct = Math.sqrt(idosHp / nH) * (idosH / idosTot);
+  const dP = Math.cbrt(idosH / idosX) * pressure;
+  const tc = TC_A * hAct + TC_B * dP + TC_C;
+  const s = tc / Math.sqrt(TC_MGB2 ** 2 + pressure ** 2);
+
+  // Composition
+  const ec = {};
+  atoms.forEach(a => ec[a] = (ec[a]||0) + 1);
+  const composition = Object.entries(ec).map(([el,n]) => n > 1 ? el + n : el).join("");
+
+  return {
+    filtered: false, composition, nTot, nH, pressure, efermi, bandgap,
+    idosTot, idosH, idosHp, idosX, tc, s, hAct, dP,
+    energyMin: eMin, energyMax: eMax
+  };
+}
+
+// ===== Display =====
+function displayResults(r) {
+  $("resComp").textContent = r.composition;
+  $("resTc").innerHTML = r.tc.toFixed(2) + '<span class="stat-unit">K</span>';
+  $("resS").textContent = r.s.toFixed(4);
+  $("resP").innerHTML = r.pressure.toFixed(1) + '<span class="stat-unit">GPa</span>';
+  $("resEg").innerHTML = r.bandgap.toFixed(4) + '<span class="stat-unit">eV</span>';
+  $("resEf").innerHTML = r.efermi.toFixed(3) + '<span class="stat-unit">eV</span>';
+  $("resHact").textContent = r.hAct.toFixed(6);
+  $("resDp").textContent = r.dP.toFixed(6);
+  $("resIdosH").textContent = r.idosH.toFixed(4);
+  $("resIdosHp").textContent = r.idosHp.toFixed(4);
+  $("resIdosTot").textContent = r.idosTot.toFixed(4);
+  $("resIdosX").textContent = r.idosX.toFixed(4);
+  $("resNtot").textContent = r.nTot;
+  $("resNh").textContent = r.nH;
+  $("resNratio").textContent = (r.nH / r.nTot).toFixed(3);
+  $("formulaDetail").innerHTML =
+    "&nbsp;&nbsp;&nbsp;= 3930.62 × " + r.hAct.toFixed(6) + " − 0.17 × " + r.dP.toFixed(6) + " − 4.69<br>";
+  $("formulaResult").innerHTML = "&nbsp;&nbsp;&nbsp;= " + r.tc.toFixed(3) + " K";
+}
+
+// ===== Download =====
+function downloadResults() {
+  const r = currentResults;
+  if (!r) return;
+  const txt = [
+    "=".repeat(70),
+    "Tc Prediction Results (Web Version)",
+    "=".repeat(70), "",
+    "Reference: Chen et al., Materials Today Physics 63 (2026) 102073", "",
+    "Input Parameters:",
+    "  Energy window: [" + r.energyMin.toFixed(2) + ", " + r.energyMax.toFixed(2) + "] eV", "",
+    "Structure Info:",
+    "  Composition:    " + r.composition,
+    "  Total atoms:    " + r.nTot,
+    "  Hydrogen atoms: " + r.nH,
+    "  Fermi energy:   " + r.efermi.toFixed(6) + " eV", "",
+    "Extracted Features:",
+    "  Pressure (P):                           " + r.pressure.toFixed(1) + " GPa",
+    "  Band gap (Eg):                          " + r.bandgap.toFixed(6) + " eV",
+    "  Total integrated DOS (IDOS_Tot):        " + r.idosTot.toFixed(6),
+    "  Hydrogen integrated DOS (IDOS_H):       " + r.idosH.toFixed(6),
+    "  Hydrogen p-orbital IDOS (IDOS_H_p):     " + r.idosHp.toFixed(6),
+    "  Non-hydrogen integrated DOS (IDOS_X):   " + r.idosX.toFixed(6), "",
+    "Descriptors:",
+    "  H_act: " + r.hAct.toFixed(6),
+    "  D_p:   " + r.dP.toFixed(6), "",
+    "Prediction:",
+    "  Tc_predicted: " + r.tc.toFixed(3) + " K",
+    "  S (performance index): " + r.s.toFixed(6),
+    "=".repeat(70)
+  ].join("\n");
+
+  const blob = new Blob([txt], {type:"text/plain"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "Tc_pred_" + r.composition + ".txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
