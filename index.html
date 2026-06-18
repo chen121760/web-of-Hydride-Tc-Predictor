@@ -1,231 +1,420 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
+<script>
+(function() {
+  var lang = localStorage.getItem('lang') || 'en';
+  document.documentElement.setAttribute('lang', lang);
+  var theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tc Predictor — Hydrogen-based Superconductors</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 62.5%; box-sizing: border-box; scroll-behavior: smooth; }
+
+* { margin: 0; padding: 0; box-sizing: inherit; }
+
+html[lang="en"] body { font-family: var(--font-body); }
+
+html[lang="zh"] body,
+html[lang="zh"] h1,
+html[lang="zh"] h2,
+html[lang="zh"] h3,
+html[lang="zh"] button,
+html[lang="zh"] a,
+html[lang="zh"] .stat,
+html[lang="zh"] .upload-text {
+  font-family: var(--font-zh);
+}
 
 :root {
-  --bg: #080c10;
-  --card: rgba(255,255,255,0.02);
-  --border: rgba(255,255,255,0.08);
-  --text: rgba(255,255,255,0.87);
-  --text2: rgba(255,255,255,0.5);
-  --text3: rgba(255,255,255,0.3);
-  --accent: #34d399;
-  --accent-bg: rgba(52,211,153,0.08);
-  --accent-border: rgba(52,211,153,0.3);
-  --error: #f87171;
-  --warn: #fbbf24;
-  --mono: 'Space Mono', monospace;
-  --sans: 'DM Sans', sans-serif;
+  --font-latin: 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-zh: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+
+  --font-size-small: 1.8rem;
+  --font-size-normal: 2.2rem;
+  --font-size-medium: 2.8rem;
+  --font-size-large: 5.5rem;
+
+  --line-height-normal: 1.7;
+  --line-height-small: 1.2;
+
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --card-hover: #eef2f8;
+  --text: #3f4259;
+  --muted: #6c6f85;
+  --border: #d8dce8;
+  --primary: #1e66f5;
+  --primary-rgb: 30,102,245;
+  --border-rgb: 216,220,232;
+  --error: #e74c3c;
+  --warn: #f39c12;
+
+  --container-max-width: 720px;
+  --gutter-huge: 6rem;
+  --gutter-medium: 4rem;
+  --gutter-normal: 3rem;
+  --gutter-small: 2rem;
 }
 
+[data-theme="dark"] {
+  --bg: #181825;
+  --card: #1e1e2e;
+  --card-hover: #25273a;
+  --text: #cdd6f4;
+  --muted: #a6adc8;
+  --border: #313244;
+  --primary: #800020;
+  --primary-rgb: 128,0,32;
+  --border-rgb: 49,50,68;
+}
+
+/* Skip Link */
+.skip-link {
+  position: absolute; top: -100%; left: 0;
+  background: var(--primary); color: #fff;
+  padding: 1rem 2rem; z-index: 9999;
+  font-size: 1.6rem; text-decoration: none;
+  transition: top 0.2s;
+}
+.skip-link:focus { top: 0; }
+
+/* Controls */
+.controls {
+  position: fixed; top: 1.5rem; right: 2rem;
+  z-index: 1000; display: flex; gap: 0.8rem;
+}
+
+.lang-switch, .theme-switch {
+  display: flex; align-items: center;
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px; padding: 3px;
+  cursor: pointer;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  position: relative;
+}
+
+.lang-switch__option, .theme-switch__option {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 2.8rem; padding: 0.4rem 0.8rem;
+  font-size: 1.3rem; font-weight: 500;
+  color: rgba(255,255,255,0.5);
+  transition: color 0.3s ease; user-select: none;
+}
+.lang-switch__option.active, .theme-switch__option.active { color: #fff; }
+.theme-switch__option { min-width: 3rem; padding: 0.4rem 0.6rem; }
+
+.lang-switch__slider, .theme-switch__slider {
+  position: absolute; top: 3px; left: 3px;
+  width: calc(50% - 3px); height: calc(100% - 6px);
+  background: var(--primary); border-radius: 17px;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.lang-switch.zh .lang-switch__slider,
+.theme-switch.light .theme-switch__slider { transform: translateX(100%); }
+
+/* Body */
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  min-height: 100vh;
-  padding: 32px 20px;
-  line-height: 1.6;
+  font-size: var(--font-size-small);
+  font-family: var(--font-body); font-weight: 400;
+  color: var(--muted); line-height: var(--line-height-normal);
+  background: var(--bg); overflow-x: hidden;
+  padding: 3.2rem 2rem; min-height: 100vh;
 }
 
-.container { max-width: 700px; margin: 0 auto; }
+.row {
+  max-width: var(--container-max-width); margin: 0 auto;
+}
 
 /* Header */
+h1, h2, h3 {
+  font-family: var(--font-latin); font-weight: 400;
+  line-height: var(--line-height-small); color: var(--text);
+}
+
+.heading-primary {
+  line-height: 1; font-size: var(--font-size-large);
+  font-weight: 400; letter-spacing: -0.5px;
+  margin: 0.4rem 0 1rem;
+}
+.heading-primary::after {
+  content: ''; display: block; height: 2px;
+  width: 8rem; background: var(--primary);
+  margin: var(--gutter-small) 0 0;
+}
+
+.tag {
+  font-size: 1.1rem; color: var(--muted);
+  letter-spacing: 2px; text-transform: uppercase;
+  font-family: var(--font-latin);
+}
 .dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 12px rgba(52,211,153,0.5);
+  background: var(--primary);
+  box-shadow: 0 0 12px rgba(var(--primary-rgb), 0.5);
   display: inline-block; vertical-align: middle; margin-right: 8px;
 }
-.tag {
-  font-size: 11px; color: var(--text3);
-  letter-spacing: 2px; text-transform: uppercase;
+
+.subtitle {
+  font-size: var(--font-size-small); color: var(--muted);
+  line-height: 1.7; margin-bottom: 0.8rem;
 }
-h1 {
-  font-size: 34px; font-weight: 700;
-  letter-spacing: -0.5px; margin: 8px 0 10px;
-}
-h1 sub { font-size: 0.6em; }
-.subtitle { font-size: 14px; color: var(--text2); line-height: 1.7; }
-.ref { font-size: 12px; opacity: 0.6; }
+.subtitle br { display: none; }
+.ref { font-size: 1.2rem; opacity: 0.7; }
 
 /* Settings */
 .settings-toggle {
-  background: none; border: 1px solid var(--border);
-  color: var(--text2); padding: 8px 16px; border-radius: 8px;
-  cursor: pointer; font-size: 13px; font-family: var(--sans);
-  margin: 20px 0; transition: border-color 0.2s;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--muted); padding: 0.8rem 1.6rem; border-radius: 8px;
+  cursor: pointer; font-size: 1.3rem; font-family: var(--font-latin);
+  margin: 2rem 0; transition: border-color 0.2s, color 0.2s;
 }
-.settings-toggle:hover { border-color: rgba(255,255,255,0.25); }
+.settings-toggle:hover { border-color: var(--primary); color: var(--primary); }
+
 .settings-panel {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 12px; padding: 20px; margin-bottom: 20px;
-  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px;
+  border-radius: 12px; padding: var(--gutter-small);
+  margin-bottom: var(--gutter-small);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem;
 }
 .settings-panel label {
-  display: block; font-size: 11px; color: var(--text3);
-  letter-spacing: 0.3px; margin-bottom: 6px;
+  display: block; font-size: 1.1rem; color: var(--muted);
+  letter-spacing: 0.3px; margin-bottom: 0.6rem;
 }
 .settings-panel input[type="number"] {
-  width: 100%; background: rgba(0,0,0,0.3);
+  width: 100%; background: var(--card-hover);
   border: 1px solid var(--border); border-radius: 6px;
-  color: white; padding: 8px 10px; font-size: 14px;
-  font-family: var(--mono); outline: none;
+  color: var(--text); padding: 0.8rem 1rem; font-size: 1.4rem;
+  font-family: var(--font-mono); outline: none;
+  transition: border-color 0.2s;
 }
-.settings-panel input:focus { border-color: var(--accent-border); }
+.settings-panel input:focus { border-color: var(--primary); }
 
 /* Upload */
 .upload-area {
-  border: 2px dashed rgba(255,255,255,0.12);
-  border-radius: 16px; padding: 48px 32px;
-  text-align: center; cursor: pointer;
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 4.8rem 3.2rem; text-align: center; cursor: pointer;
   transition: all 0.3s; background: var(--card);
-  margin-bottom: 24px;
+  margin-bottom: 2.4rem;
 }
 .upload-area.dragging {
-  border-color: var(--accent);
-  background: var(--accent-bg);
+  border-color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.05);
 }
-.upload-area:hover { border-color: rgba(255,255,255,0.25); }
-.upload-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.6; }
-.upload-text { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.7); margin-bottom: 6px; }
-.upload-hint { font-size: 12px; color: var(--text3); }
-.upload-progress { font-size: 15px; color: var(--accent); font-weight: 500; }
+.upload-area:hover { border-color: rgba(var(--border-rgb), 0.5); transform: translateY(-2px); }
+.upload-icon { font-size: 3.6rem; margin-bottom: 1.2rem; opacity: 0.5; }
+.upload-text { font-size: 1.5rem; font-weight: 500; color: var(--text); margin-bottom: 0.6rem; }
+.upload-hint { font-size: 1.2rem; color: var(--muted); }
+.upload-progress { font-size: 1.5rem; color: var(--primary); font-weight: 500; }
 
 /* Messages */
 .msg-box {
-  border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
+  border-radius: 12px; padding: 1.6rem 2rem; margin-bottom: 2.4rem;
+  background: var(--card);
 }
-.msg-error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); }
-.msg-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
-.msg-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.msg-error { border: 1px solid var(--error); }
+.msg-warn { border: 1px solid var(--warn); }
+.msg-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.6rem; }
 .msg-error .msg-title { color: var(--error); }
 .msg-warn .msg-title { color: var(--warn); }
-.msg-body { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.msg-body { font-size: 1.3rem; color: var(--muted); line-height: 1.5; }
 
 /* Results */
 .results-card {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 16px; padding: 24px;
+  border-radius: 12px; padding: 2.4rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
+.results-card:hover {
+  border-color: rgba(var(--border-rgb), 0.4);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+[data-theme="dark"] .results-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.35); }
+
 .results-header {
   display: flex; justify-content: space-between;
-  align-items: center; margin-bottom: 20px;
+  align-items: center; margin-bottom: 2rem;
 }
 .results-label {
-  font-size: 11px; color: var(--text3);
-  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px;
+  font-size: 1.1rem; color: var(--muted);
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 0.4rem;
+  font-family: var(--font-latin);
 }
 .results-comp {
-  font-size: 22px; font-weight: 700;
-  color: white; font-family: var(--mono);
+  font-size: 2.2rem; font-weight: 700;
+  color: var(--text); font-family: var(--font-mono);
 }
+
 .btn-download {
-  background: var(--accent-bg); border: 1px solid var(--accent-border);
-  color: var(--accent); padding: 8px 16px; border-radius: 8px;
-  cursor: pointer; font-size: 12px; font-family: var(--sans);
+  background: transparent; border: 1px solid var(--primary);
+  color: var(--primary); padding: 0.8rem 1.6rem; border-radius: 8px;
+  cursor: pointer; font-size: 1.2rem; font-family: var(--font-latin);
   font-weight: 500; transition: all 0.2s;
 }
-.btn-download:hover { background: rgba(52,211,153,0.2); }
+.btn-download:hover { background: var(--primary); color: #fff; }
 
 /* Stat grid */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.6rem; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.6rem; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem; }
 
 .stat {
-  padding: 14px 16px; border-radius: 10px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  padding: 1.4rem 1.6rem; border-radius: 8px;
+  background: var(--card-hover); border: 1px solid transparent;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
+.stat:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--border-rgb), 0.3);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+[data-theme="dark"] .stat:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+
 .stat.highlight {
-  background: linear-gradient(135deg, #0e3a2d 0%, #0a2a20 100%);
-  border: 1px solid var(--accent-border);
+  background: var(--card-hover);
+  border-left: 3px solid var(--primary);
+  border-radius: 8px;
 }
 .stat-label {
-  font-size: 11px; color: rgba(255,255,255,0.45);
+  font-size: 1.1rem; color: var(--muted);
   letter-spacing: 0.5px; text-transform: uppercase;
-  margin-bottom: 6px; font-family: var(--sans);
+  margin-bottom: 0.6rem; font-family: var(--font-latin);
 }
 .stat-value {
-  font-size: 18px; font-weight: 600;
-  color: rgba(255,255,255,0.9);
-  font-family: var(--mono); line-height: 1.2;
+  font-size: 1.8rem; font-weight: 600;
+  color: var(--text); font-family: var(--font-mono);
+  line-height: 1.2;
 }
-.stat.highlight .stat-value { font-size: 28px; color: var(--accent); }
+.stat.highlight .stat-value { font-size: 2.8rem; color: var(--primary); }
 .stat-unit {
-  font-size: 12px; color: rgba(255,255,255,0.4);
-  margin-left: 4px; font-weight: 400;
+  font-size: 1.2rem; color: var(--muted);
+  margin-left: 0.4rem; font-weight: 400; font-family: var(--font-latin);
 }
 
 .section-label {
-  font-size: 11px; color: var(--text3);
+  font-size: 1.1rem; color: var(--muted);
   letter-spacing: 1px; text-transform: uppercase;
-  margin: 20px 0 10px;
+  margin: 2rem 0 1rem; font-family: var(--font-latin);
 }
 
 /* Formula box */
 .formula-box {
-  margin-top: 20px; padding: 16px;
-  background: rgba(0,0,0,0.3); border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.05);
+  margin-top: 2rem; padding: 1.6rem;
+  background: var(--card-hover); border-radius: 8px;
+  border: 1px solid var(--border);
 }
-.formula-box .fl { font-size: 11px; color: var(--text3); margin-bottom: 8px; letter-spacing: 0.5px; }
+.formula-box .fl {
+  font-size: 1.1rem; color: var(--muted);
+  margin-bottom: 0.8rem; letter-spacing: 0.5px;
+  font-family: var(--font-latin);
+}
 .formula-box code {
-  font-family: var(--mono); font-size: 12px;
-  color: var(--text2); line-height: 2;
-  display: block;
+  font-family: var(--font-mono); font-size: 1.2rem;
+  color: var(--text); line-height: 2; display: block;
 }
-.formula-box .result { color: var(--accent); font-weight: 700; }
+.formula-box .result { color: var(--primary); font-weight: 700; }
+
+/* DOS Chart */
+.dos-chart {
+  margin-top: var(--gutter-small); min-height: 380px; width: 100%;
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--card);
+}
+.dos-chart .plotly { border-radius: 8px; }
 
 /* Footer */
 .footer {
-  margin-top: 40px; padding-top: 20px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  font-size: 11px; color: rgba(255,255,255,0.25); line-height: 1.8;
+  margin-top: 4rem; padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  font-size: 1.1rem; color: var(--muted); line-height: 1.8;
 }
-.footer p { margin-top: 6px; }
+.footer p { margin-top: 0.6rem; }
+
+/* Focus styles */
+button:focus, a:focus, input:focus {
+  outline: 2px solid var(--primary); outline-offset: 2px;
+}
+body:not(.user-is-tabbing) button:focus,
+body:not(.user-is-tabbing) a:focus,
+body:not(.user-is-tabbing) input:focus {
+  outline: none;
+}
 
 /* Responsive */
 @media (max-width: 600px) {
   .settings-panel { grid-template-columns: 1fr; }
   .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
-  h1 { font-size: 26px; }
-  .stat.highlight .stat-value { font-size: 22px; }
+  .heading-primary { font-size: 3.8rem; }
+  .stat.highlight .stat-value { font-size: 2.2rem; }
+  .upload-area { padding: 3.2rem 1.6rem; }
 }
 
-.hidden { display: none; }
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<div class="container">
+<a href="#main-content" class="skip-link" data-i18n="skip">Skip to main content</a>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="lang-switch en" id="lang-toggle" role="button" tabindex="0" aria-label="Switch Language">
+    <span class="lang-switch__option active" data-lang="en">EN</span>
+    <span class="lang-switch__option" data-lang="zh">中</span>
+    <span class="lang-switch__slider"></span>
+  </div>
+  <div class="theme-switch light" id="theme-toggle" role="button" tabindex="0" aria-label="Switch Theme">
+    <span class="theme-switch__option active" data-theme="dark">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </span>
+    <span class="theme-switch__option" data-theme="light">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </span>
+    <span class="theme-switch__slider"></span>
+  </div>
+</div>
+
+<div class="row" id="main-content">
+
   <!-- Header -->
-  <div style="margin-bottom:36px">
-    <div><span class="dot"></span><span class="tag">Hydrogen Superconductor</span></div>
-    <h1>T<sub>c</sub> Predictor</h1>
-    <p class="subtitle">
-      基于符号回归模型预测含氢超导体的超导转变温度。上传 vasprun.xml 即可。
-      SR model for predicting Tc of H-based surpercon,only ask for vasprun.xml.<br>
-      <span class="ref">Chen et al., 10.1016/j.mtphys.2026.102073</span>
+  <div style="margin-bottom:3.6rem">
+    <div><span class="dot"></span><span class="tag" data-i18n="tag">HYDROGEN SUPERCONDUCTOR</span></div>
+    <h1 class="heading-primary">T<sub>c</sub> Predictor</h1>
+    <p class="subtitle" data-i18n-html="subtitle">
+      Predict T<sub>c</sub> of H-based superconductors via symbolic regression model. Upload vasprun.xml to start.
     </p>
+    <p class="ref" data-i18n="ref">Chen et al., 10.1016/j.mtphys.2026.102073</p>
   </div>
 
   <!-- Settings -->
-  <button class="settings-toggle" onclick="toggleSettings()">▸ 参数设置</button>
-  <div id="settingsPanel" class="settings-panel hidden" style="grid-template-columns: 1fr 1fr;">
+  <button class="settings-toggle" onclick="toggleSettings()" data-i18n="settings.toggle">▸ Settings</button>
+  <div id="settingsPanel" class="settings-panel hidden">
     <div>
-      <label title="能量窗口下限（相对费米能级）">E<sub>min</sub> (eV)</label>
+      <label data-i18n="settings.emin">Energy window lower bound (relative to Fermi level)</label>
       <input type="number" id="energyMin" value="-1.0" step="0.1">
     </div>
     <div>
-      <label title="能量窗口上限（相对费米能级）">E<sub>max</sub> (eV)</label>
+      <label data-i18n="settings.emax">Energy window upper bound (relative to Fermi level)</label>
       <input type="number" id="energyMax" value="1.0" step="0.1">
     </div>
   </div>
@@ -235,17 +424,19 @@ h1 sub { font-size: 0.6em; }
     ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
     ondrop="handleDrop(event)" onclick="document.getElementById('fileInput').click()">
     <input type="file" id="fileInput" accept=".xml" style="display:none" onchange="handleFile(this.files[0])">
-    <div class="upload-icon" id="uploadIcon">📂</div>
+    <div class="upload-icon" id="uploadIcon">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
     <div id="uploadText">
-      <div class="upload-text">拖放 vasprun.xml 到此处，或点击选择文件</div>
-      <div class="upload-hint">需要 LORBIT = 10 或 11 的 VASP 计算结果</div>
+      <div class="upload-text" data-i18n="upload.text">Drag &amp; drop vasprun.xml here, or click to select</div>
+      <div class="upload-hint" data-i18n="upload.hint">Requires VASP output with LORBIT = 10 or 11</div>
     </div>
     <div id="uploadProgress" class="upload-progress hidden"></div>
   </div>
 
   <!-- Messages -->
   <div id="errorBox" class="msg-box msg-error hidden">
-    <div class="msg-title">✕ 处理失败</div>
+    <div class="msg-title" id="errorTitle">✕ Processing Failed</div>
     <div class="msg-body" id="errorMsg"></div>
   </div>
 
@@ -253,39 +444,35 @@ h1 sub { font-size: 0.6em; }
   <div id="resultsCard" class="results-card hidden">
     <div class="results-header">
       <div>
-        <div class="results-label">预测结果</div>
+        <div class="results-label" data-i18n="results.label">Prediction Result</div>
         <div class="results-comp" id="resComp"></div>
       </div>
-      <button class="btn-download" onclick="downloadResults()">↓ 下载结果</button>
+      <button class="btn-download" onclick="downloadResults()" data-i18n="results.download">↓ Download</button>
     </div>
 
     <div class="grid-2">
       <div class="stat highlight">
-        <div class="stat-label">Tc (预测)</div>
+        <div class="stat-label" data-i18n="results.tc">Tc (Predicted)</div>
         <div class="stat-value" id="resTc"></div>
       </div>
       <div class="stat highlight">
-        <div class="stat-label">S (性能指标)</div>
+        <div class="stat-label" data-i18n="results.s">S (Performance Index)</div>
         <div class="stat-value" id="resS"></div>
       </div>
     </div>
 
-    <div class="grid-3">
+    <div class="grid-2">
       <div class="stat">
-        <div class="stat-label">压力 P</div>
+        <div class="stat-label" data-i18n="results.p">Pressure P</div>
         <div class="stat-value" id="resP"></div>
       </div>
       <div class="stat">
-        <div class="stat-label">带隙 Eg</div>
-        <div class="stat-value" id="resEg"></div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">费米能 E<sub>F</sub></div>
+        <div class="stat-label" data-i18n-html="results.ef">Fermi Energy E<sub>F</sub></div>
         <div class="stat-value" id="resEf"></div>
       </div>
     </div>
 
-    <div class="section-label">描述符详情</div>
+    <div class="section-label" data-i18n="results.descriptors">Descriptor Details</div>
     <div class="grid-2">
       <div class="stat"><div class="stat-label">H<sub>act</sub></div><div class="stat-value" id="resHact"></div></div>
       <div class="stat"><div class="stat-label">D<sub>p</sub></div><div class="stat-value" id="resDp"></div></div>
@@ -297,7 +484,7 @@ h1 sub { font-size: 0.6em; }
       <div class="stat"><div class="stat-label">IDOS_X</div><div class="stat-value" id="resIdosX"></div></div>
     </div>
 
-    <div class="section-label">结构信息</div>
+    <div class="section-label" data-i18n="results.structure">Structure Info</div>
     <div class="grid-3">
       <div class="stat"><div class="stat-label">N_Tot</div><div class="stat-value" id="resNtot"></div></div>
       <div class="stat"><div class="stat-label">N_H</div><div class="stat-value" id="resNh"></div></div>
@@ -305,30 +492,253 @@ h1 sub { font-size: 0.6em; }
     </div>
 
     <div class="formula-box">
-      <div class="fl">PREDICTION FORMULA</div>
+      <div class="fl" data-i18n="results.formula">PREDICTION FORMULA</div>
       <code>
         T<sub>c</sub> = 3930.62 × H<sub>act</sub> − 0.17 × D<sub>p</sub> − 4.69<br>
         <span id="formulaDetail"></span>
         <span class="result" id="formulaResult"></span>
       </code>
     </div>
+
+    <div class="section-label" data-i18n="results.dos">Density of States</div>
+    <div id="dosChart" class="dos-chart"></div>
   </div>
 
   <!-- Footer -->
   <div class="footer">
-    <p>所有计算完全在浏览器本地运行，不上传任何数据至服务器。</p>
-    <p>模型公式：T<sub>c</sub> = a × H<sub>act</sub> + b × D<sub>p</sub> + c，其中 a=3930.62, b=−0.17, c=−4.69</p>
-    <p>参考文献：Chen et al., "Interpretable descriptors enable prediction of hydrogen-based superconductors at moderate pressures", Materials Today Physics 63 (2026) 102073</p>
+    <p data-i18n="footer.local">All computation runs entirely in your browser. No data is uploaded to any server.</p>
+    <p data-i18n-html="footer.formula">Formula: T<sub>c</sub> = a × H<sub>act</sub> + b × D<sub>p</sub> + c, where a=3930.62, b=−0.17, c=−4.69</p>
+    <p data-i18n="footer.ref">Reference: Chen et al., "Interpretable descriptors enable prediction of hydrogen-based superconductors at moderate pressures", Materials Today Physics 63 (2026) 102073</p>
   </div>
 </div>
 
 <script>
+// ===== i18n =====
+var translations = {
+  en: {
+    'skip': 'Skip to main content',
+    'tag': 'HYDROGEN SUPERCONDUCTOR',
+    'ref': 'Chen et al., 10.1016/j.mtphys.2026.102073',
+    'subtitle': 'Predict T<sub>c</sub> of H-based superconductors via symbolic regression model. Upload vasprun.xml to start.',
+    'settings.toggle': '▸ Settings',
+    'settings.toggle.open': '▾ Settings',
+    'settings.emin': 'E<sub>min</sub> (eV)',
+    'settings.emax': 'E<sub>max</sub> (eV)',
+    'upload.text': 'Drag &amp; drop vasprun.xml here, or click to select',
+    'upload.hint': 'Requires VASP output with LORBIT = 10 or 11',
+    'results.label': 'Prediction Result',
+    'results.download': '↓ Download',
+    'results.tc': 'Tc (Predicted)',
+    'results.s': 'S (Performance Index)',
+    'results.p': 'Pressure P',
+    'results.ef': 'Fermi Energy E<sub>F</sub>',
+    'results.descriptors': 'Descriptor Details',
+    'results.structure': 'Structure Info',
+    'results.dos': 'Density of States',
+    'results.formula': 'PREDICTION FORMULA',
+    'footer.local': 'All computation runs entirely in your browser. No data is uploaded to any server.',
+    'footer.formula': 'Formula: T<sub>c</sub> = a × H<sub>act</sub> + b × D<sub>p</sub> + c, where a=3930.62, b=−0.17, c=−4.69',
+    'footer.ref': 'Reference: Chen et al., "Interpretable descriptors enable prediction of hydrogen-based superconductors at moderate pressures", Materials Today Physics 63 (2026) 102073',
+    'progress.reading': 'Reading file ({size} MB)...',
+    'progress.parsing': 'Parsing vasprun.xml ...',
+    'progress.extracting': 'Extracting atoms and DOS...',
+    'error.title': '✕ Processing Failed',
+    'error.incomplete': 'vasprun.xml is incomplete — the calculation may still be running or has crashed.',
+    'error.noAtominfo': 'Could not find <atominfo>.',
+    'error.noAtomArray': 'Could not parse atom list.',
+    'error.zeroAtoms': 'No atoms parsed.',
+    'error.noHydrogen': 'No hydrogen atoms found in structure. This model is for H-based superconductors only.',
+    'error.noStress': 'Could not find stress tensor.',
+    'error.badStress': 'Invalid stress tensor format.',
+    'error.noDOS': 'Could not find DOS data. Please confirm DOS calculation is enabled.',
+    'error.noEfermi': 'Could not find Fermi energy.',
+    'error.noTotalDOS': 'Could not find total density of states.',
+    'error.emptyDOS': 'Total DOS is empty.',
+    'error.noPDOS': 'Could not find partial DOS (PDOS). Please set LORBIT = 10 or 11.',
+    'error.spinCount': 'Could not determine spin channels.',
+    'error.zeroIDOS': 'Total DOS integral is zero.',
+    'error.zeroIDOSX': 'Non-hydrogen DOS integral is zero.'
+  },
+  zh: {
+    'skip': '跳转到主要内容',
+    'tag': '含氢超导体',
+    'ref': 'Chen et al., 10.1016/j.mtphys.2026.102073',
+    'subtitle': '基于符号回归模型预测含氢超导体的超导转变温度。上传 vasprun.xml 即可。',
+    'settings.toggle': '▸ 参数设置',
+    'settings.toggle.open': '▾ 参数设置',
+    'settings.emin': 'E<sub>min</sub> (eV)',
+    'settings.emax': 'E<sub>max</sub> (eV)',
+    'upload.text': '拖放 vasprun.xml 到此处，或点击选择文件',
+    'upload.hint': '需要 LORBIT = 10 或 11 的 VASP 计算结果',
+    'results.label': '预测结果',
+    'results.download': '↓ 下载结果',
+    'results.tc': 'Tc (预测)',
+    'results.s': 'S (性能指标)',
+    'results.p': '压力 P',
+    'results.ef': '费米能 E<sub>F</sub>',
+    'results.descriptors': '描述符详情',
+    'results.structure': '结构信息',
+    'results.dos': '态密度图',
+    'results.formula': '预测公式',
+    'footer.local': '所有计算完全在浏览器本地运行，不上传任何数据至服务器。',
+    'footer.formula': '模型公式：T<sub>c</sub> = a × H<sub>act</sub> + b × D<sub>p</sub> + c，其中 a=3930.62，b=−0.17，c=−4.69',
+    'footer.ref': '参考文献：Chen et al., "Interpretable descriptors enable prediction of hydrogen-based superconductors at moderate pressures", Materials Today Physics 63 (2026) 102073',
+    'progress.reading': '正在读取文件 ({size} MB)...',
+    'progress.parsing': '正在解析 vasprun.xml ...',
+    'progress.extracting': '正在提取原子信息与态密度...',
+    'error.title': '✕ 处理失败',
+    'error.incomplete': 'vasprun.xml 不完整——计算可能仍在运行或已崩溃。',
+    'error.noAtominfo': '无法找到 <atominfo>。',
+    'error.noAtomArray': '无法解析原子列表。',
+    'error.zeroAtoms': '未解析到任何原子。',
+    'error.noHydrogen': '结构中未发现氢原子。此模型仅适用于含氢超导体。',
+    'error.noStress': '无法找到应力张量。',
+    'error.badStress': '应力张量格式无效。',
+    'error.noDOS': '无法找到 DOS 数据。请确认已开启 DOS 计算。',
+    'error.noEfermi': '无法找到费米能级。',
+    'error.noTotalDOS': '无法找到总态密度。',
+    'error.emptyDOS': '总态密度为空。',
+    'error.noPDOS': '无法找到分波态密度 (PDOS)。请设置 LORBIT = 10 或 11。',
+    'error.spinCount': '无法确定自旋通道数。',
+    'error.zeroIDOS': '总 DOS 积分为零。',
+    'error.zeroIDOSX': '非氢元素 DOS 积分为零。'
+  }
+};
+
+var currentLang = 'en';
+
+function t(key, replacements) {
+  var str = translations[currentLang][key] || key;
+  if (replacements) {
+    for (var k in replacements) {
+      str = str.replace('{' + k + '}', replacements[k]);
+    }
+  }
+  return str;
+}
+
+function setLanguage(lang, save) {
+  if (save === undefined) save = true;
+  currentLang = lang;
+  document.documentElement.setAttribute('lang', lang);
+  if (save) localStorage.setItem('lang', lang);
+
+  var ls = document.getElementById('lang-toggle');
+  ls.classList.toggle('en', lang === 'en');
+  ls.classList.toggle('zh', lang === 'zh');
+  ls.querySelectorAll('.lang-switch__option').forEach(function(opt) {
+    opt.classList.toggle('active', opt.dataset.lang === lang);
+  });
+
+  // Update data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+  // Update data-i18n-html elements
+  document.querySelectorAll('[data-i18n-html]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n-html');
+    el.innerHTML = t(key);
+  });
+
+  // Update settings toggle button text
+  updateSettingsBtnText();
+}
+
+function updateSettingsBtnText() {
+  var btn = document.querySelector('.settings-toggle');
+  if (!btn) return;
+  var panel = document.getElementById('settingsPanel');
+  if (panel && !panel.classList.contains('hidden')) {
+    btn.setAttribute('data-i18n', 'settings.toggle.open');
+    btn.textContent = t('settings.toggle.open');
+  } else {
+    btn.setAttribute('data-i18n', 'settings.toggle');
+    btn.textContent = t('settings.toggle');
+  }
+}
+
+// Init language
+var savedLang = localStorage.getItem('lang') || 'en';
+setLanguage(savedLang, false);
+
+// Language switch click
+document.getElementById('lang-toggle').addEventListener('click', function() {
+  var next = currentLang === 'en' ? 'zh' : 'en';
+  setLanguage(next);
+});
+
+// Keyboard support for lang-switch
+document.getElementById('lang-toggle').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    var next = currentLang === 'en' ? 'zh' : 'en';
+    setLanguage(next);
+  }
+});
+
+// ===== Theme Toggle =====
+(function() {
+  var themeSwitch = document.getElementById('theme-toggle');
+  var html = document.documentElement;
+
+  function setThemeUI(theme) {
+    themeSwitch.classList.toggle('light', theme === 'light');
+    themeSwitch.classList.toggle('dark', theme === 'dark');
+    themeSwitch.querySelectorAll('.theme-switch__option').forEach(function(opt) {
+      opt.classList.toggle('active', opt.dataset.theme === theme);
+    });
+  }
+
+  setThemeUI(html.getAttribute('data-theme') || 'light');
+
+  function applyTheme(theme) {
+    html.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    setThemeUI(theme);
+    // Re-render DOS chart if results are visible
+    if (currentResults && !$("resultsCard").classList.contains("hidden")) {
+      plotDOS(currentResults);
+    }
+  }
+
+  themeSwitch.addEventListener('click', function() {
+    var current = html.getAttribute('data-theme') || 'light';
+    var next = current === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+  });
+
+  themeSwitch.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      var current = html.getAttribute('data-theme') || 'light';
+      var next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+    }
+  });
+})();
+
+// ===== Keyboard Focus Detection =====
+function handleFirstTab(e) {
+  if (e.key === 'Tab') {
+    document.body.classList.add('user-is-tabbing');
+    window.removeEventListener('keydown', handleFirstTab);
+    window.addEventListener('mousedown', handleMouseDownOnce);
+  }
+}
+function handleMouseDownOnce() {
+  document.body.classList.remove('user-is-tabbing');
+  window.removeEventListener('mousedown', handleMouseDownOnce);
+  window.addEventListener('keydown', handleFirstTab);
+}
+window.addEventListener('keydown', handleFirstTab);
+
 // ===== Constants =====
-const TC_A = 3930.62, TC_B = -0.17, TC_C = -4.69, TC_MGB2 = 39.0;
-const P_ORBS = new Set(["p","px","py","pz"]);
+var TC_A = 3930.62, TC_B = -0.17, TC_C = -4.69, TC_MGB2 = 39.0;
+var P_ORBS = new Set(["p","px","py","pz"]);
 
 // ===== State =====
-let currentResults = null;
+var currentResults = null;
 
 // ===== UI Helpers =====
 function $(id) { return document.getElementById(id); }
@@ -336,33 +746,35 @@ function show(id) { $(id).classList.remove("hidden"); }
 function hide(id) { $(id).classList.add("hidden"); }
 
 function toggleSettings() {
-  const p = $("settingsPanel");
-  const btn = document.querySelector(".settings-toggle");
+  var p = $("settingsPanel");
   if (p.classList.contains("hidden")) {
     p.classList.remove("hidden");
-    btn.textContent = "▾ 参数设置";
   } else {
     p.classList.add("hidden");
-    btn.textContent = "▸ 参数设置";
   }
+  updateSettingsBtnText();
 }
 
 function setProgress(msg) {
-  $("uploadIcon").textContent = "⏳";
+  $("uploadIcon").innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
   hide("uploadText");
   show("uploadProgress");
   $("uploadProgress").textContent = msg;
 }
 
 function resetUpload() {
-  $("uploadIcon").textContent = "📂";
+  $("uploadIcon").innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
   show("uploadText");
   hide("uploadProgress");
   hide("errorBox"); hide("resultsCard");
+  // Clear chart
+  var cEl = $("dosChart");
+  if (cEl) { cEl.style.display = 'none'; Plotly.purge(cEl); }
 }
 
 function showError(msg) {
   resetUpload();
+  $("errorTitle").textContent = t('error.title');
   $("errorMsg").textContent = msg;
   show("errorBox");
 }
@@ -373,202 +785,233 @@ function handleDragLeave(e) { $("uploadArea").classList.remove("dragging"); }
 function handleDrop(e) {
   e.preventDefault();
   $("uploadArea").classList.remove("dragging");
-  const file = e.dataTransfer.files[0];
+  var file = e.dataTransfer.files[0];
   if (file) handleFile(file);
 }
+
+// ===== Error Message Mapping (computeAll throws English keys) =====
+var errorMessages = {
+  'incomplete': 'error.incomplete',
+  'atominfo': 'error.noAtominfo',
+  'atomArray': 'error.noAtomArray',
+  'zeroAtoms': 'error.zeroAtoms',
+  'noHydrogen': 'error.noHydrogen',
+  'stress': 'error.noStress',
+  'badStress': 'error.badStress',
+  'dos': 'error.noDOS',
+  'efermi': 'error.noEfermi',
+  'totalDOS': 'error.noTotalDOS',
+  'emptyDOS': 'error.emptyDOS',
+  'pdos': 'error.noPDOS',
+  'spinCount': 'error.spinCount',
+  'zeroIDOS': 'error.zeroIDOS',
+  'zeroIDOSX': 'error.zeroIDOSX'
+};
 
 // ===== File Processing =====
 async function handleFile(file) {
   if (!file) return;
   hide("errorBox"); hide("resultsCard");
 
-  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-  setProgress("正在读取文件 (" + sizeMB + " MB)...");
+  var sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  setProgress(t('progress.reading', {size: sizeMB}));
 
   try {
-    const text = await file.text();
-    setProgress("正在解析 vasprun.xml ...");
+    var text = await file.text();
+    setProgress(t('progress.parsing'));
     await sleep(30);
-    setProgress("正在提取原子信息与态密度...");
+    setProgress(t('progress.extracting'));
     await sleep(30);
 
-    const eMin = parseFloat($("energyMin").value) || -1.0;
-    const eMax = parseFloat($("energyMax").value) || 1.0;
+    var eMin = parseFloat($("energyMin").value) || -1.0;
+    var eMax = parseFloat($("energyMax").value) || 1.0;
 
-    const result = computeAll(text, eMin, eMax);
+    var result = computeAll(text, eMin, eMax);
 
     currentResults = result;
-    displayResults(result);
     resetUpload();
     show("resultsCard");
+    displayResults(result);
 
   } catch (err) {
-    showError(err.message);
+    var msg = err.message;
+    // Try to translate error by looking up key mapping
+    for (var key in errorMessages) {
+      if (msg.indexOf(key) !== -1) {
+        msg = t(errorMessages[key]);
+        break;
+      }
+    }
+    // If no mapping found, also try direct i18n key lookup
+    if (msg === err.message && translations[currentLang][msg]) {
+      msg = t(msg);
+    }
+    showError(msg);
   }
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
-// ===== Core Computation =====
+// ===== Core Computation (unchanged logic, English error keys) =====
 function trapz(y, x) {
-  let s = 0;
-  for (let i = 1; i < x.length; i++) s += 0.5 * (y[i] + y[i-1]) * (x[i] - x[i-1]);
+  var s = 0;
+  for (var i = 1; i < x.length; i++) s += 0.5 * (y[i] + y[i-1]) * (x[i] - x[i-1]);
   return s;
 }
 
 function extractBetween(text, start, end, fromEnd) {
-  const i = fromEnd ? text.lastIndexOf(start) : text.indexOf(start);
+  var i = fromEnd ? text.lastIndexOf(start) : text.indexOf(start);
   if (i === -1) return null;
-  const j = text.indexOf(end, i);
+  var j = text.indexOf(end, i);
   if (j === -1) return null;
   return text.substring(i, j + end.length);
 }
 
 function allRLines(section) {
-  const lines = [], re = /<r>(.*?)<\/r>/g;
-  let m;
+  var lines = [], re = /<r>(.*?)<\/r>/g;
+  var m;
   while ((m = re.exec(section)) !== null)
     lines.push(m[1].trim().split(/\s+/).map(Number));
   return lines;
 }
 
 function getFields(section) {
-  const f = [], re = /<field[^>]*>(.*?)<\/field>/g;
-  let m;
+  var f = [], re = /<field[^>]*>(.*?)<\/field>/g;
+  var m;
   while ((m = re.exec(section)) !== null) f.push(m[1].trim());
   return f;
 }
 
 function computeAll(text, eMin, eMax) {
   // Completeness check
-  const tail = text.slice(-2000);
+  var tail = text.slice(-2000);
   if (!tail.includes("</modeling>"))
-    throw new Error("vasprun.xml 不完整——计算可能仍在运行或已崩溃。");
+    throw new Error("incomplete");
 
   // ---- Atoms ----
-  const atomSec = extractBetween(text, "<atominfo>", "</atominfo>");
-  if (!atomSec) throw new Error("无法找到 <atominfo>。");
-  const atomArr = extractBetween(atomSec, '<array name="atoms" >', '</array>');
-  if (!atomArr) throw new Error("无法解析原子列表。");
-  const atoms = [];
-  let am;
-  const are = /<rc>\s*<c>\s*(\S+)\s*<\/c>/g;
+  var atomSec = extractBetween(text, "<atominfo>", "</atominfo>");
+  if (!atomSec) throw new Error("atominfo");
+  var atomArr = extractBetween(atomSec, '<array name="atoms" >', '</array>');
+  if (!atomArr) throw new Error("atomArray");
+  var atoms = [];
+  var am;
+  var are = /<rc>\s*<c>\s*(\S+)\s*<\/c>/g;
   while ((am = are.exec(atomArr)) !== null) atoms.push(am[1].trim());
-  if (atoms.length === 0) throw new Error("未解析到任何原子。");
-  const nTot = atoms.length;
-  const nH = atoms.filter(a => a === "H").length;
-  if (nH === 0) throw new Error("结构中未发现氢原子。此模型仅适用于含氢超导体。");
+  if (atoms.length === 0) throw new Error("zeroAtoms");
+  var nTot = atoms.length;
+  var nH = atoms.filter(function(a) { return a === "H"; }).length;
+  if (nH === 0) throw new Error("noHydrogen");
 
   // ---- Pressure ----
-  const stressTag = '<varray name="stress" >';
-  let si = text.lastIndexOf(stressTag);
-  if (si === -1) throw new Error("无法找到应力张量。");
-  const stressSec = text.substring(si, text.indexOf("</varray>", si) + 10);
-  const sRows = [];
-  const vre = /<v>(.*?)<\/v>/g;
-  let vm;
+  var stressTag = '<varray name="stress" >';
+  var si = text.lastIndexOf(stressTag);
+  if (si === -1) throw new Error("stress");
+  var stressSec = text.substring(si, text.indexOf("</varray>", si) + 10);
+  var sRows = [];
+  var vre = /<v>(.*?)<\/v>/g;
+  var vm;
   while ((vm = vre.exec(stressSec)) !== null)
     sRows.push(vm[1].trim().split(/\s+/).map(Number));
-  if (sRows.length < 3) throw new Error("应力张量格式无效。");
-  const pressure = (sRows[0][0] + sRows[1][1] + sRows[2][2]) / 3.0 * 0.1;
+  if (sRows.length < 3) throw new Error("badStress");
+  var pressure = (sRows[0][0] + sRows[1][1] + sRows[2][2]) / 3.0 * 0.1;
 
   // ---- DOS ----
-  const dosSec = extractBetween(text, "<dos>", "</dos>");
-  if (!dosSec) throw new Error("无法找到 DOS 数据。请确认已开启 DOS 计算。");
+  var dosSec = extractBetween(text, "<dos>", "</dos>");
+  if (!dosSec) throw new Error("dos");
 
   // Fermi energy
-  const efm = dosSec.match(/<i\s+name="efermi">\s*([\-\d.eE+]+)\s*<\/i>/);
-  if (!efm) throw new Error("无法找到费米能级。");
-  const efermi = parseFloat(efm[1]);
+  var efm = dosSec.match(/<i\s+name="efermi">\s*([\-\d.eE+]+)\s*<\/i>/);
+  if (!efm) throw new Error("efermi");
+  var efermi = parseFloat(efm[1]);
 
   // Total DOS
-  const totalSec = extractBetween(dosSec, "<total>", "</total>");
-  if (!totalSec) throw new Error("无法找到总态密度。");
-  const totalSpins = totalSec.split(/<set comment="spin/);
-  const raw1 = allRLines(totalSpins[1] || "");
-  const raw2 = totalSpins.length > 2 ? allRLines(totalSpins[2]) : [];
-  const nE = raw1.length;
-  if (nE === 0) throw new Error("总态密度为空。");
-  const energies = raw1.map(r => r[0]);
-  const totalDos = raw1.map((r,i) => r[1] + (raw2.length > 0 ? raw2[i][1] : 0));
+  var totalSec = extractBetween(dosSec, "<total>", "</total>");
+  if (!totalSec) throw new Error("totalDOS");
+  var totalSpins = totalSec.split(/<set comment="spin/);
+  var raw1 = allRLines(totalSpins[1] || "");
+  var raw2 = totalSpins.length > 2 ? allRLines(totalSpins[2]) : [];
+  var nE = raw1.length;
+  if (nE === 0) throw new Error("emptyDOS");
+  var energies = raw1.map(function(r) { return r[0]; });
+  var totalDos = raw1.map(function(r,i) { return r[1] + (raw2.length > 0 ? raw2[i][1] : 0); });
 
-  // Bandgap (informational only, no filtering)
-  const relE = energies.map(e => e - efermi);
-  let vbm = null, cbm = null;
-  for (let i = 0; i < nE; i++) {
-    if (relE[i] >= -5 && relE[i] <= 0 && totalDos[i] > 0) vbm = energies[i];
-  }
-  for (let i = 0; i < nE; i++) {
-    if (relE[i] > 0 && totalDos[i] > 0) { cbm = energies[i]; break; }
-  }
-  const bandgap = (vbm !== null && cbm !== null && cbm > vbm) ? cbm - vbm : 0;
+  var relE = energies.map(function(e) { return e - efermi; });
 
   // Partial DOS
-  const partSec = extractBetween(dosSec, "<partial>", "</partial>");
-  if (!partSec) throw new Error("无法找到分波态密度 (PDOS)。请设置 LORBIT = 10 或 11。");
+  var partSec = extractBetween(dosSec, "<partial>", "</partial>");
+  if (!partSec) throw new Error("pdos");
 
-  const headerSec = extractBetween(partSec, "<array>", "<set>") || "";
-  const fields = getFields(headerSec).slice(1); // skip "energy"
-  const pIdx = [];
-  const allIdx = fields.map((_, i) => i);
-  fields.forEach((f, i) => { if (P_ORBS.has(f.toLowerCase())) pIdx.push(i); });
+  var headerSec = extractBetween(partSec, "<array>", "<set>") || "";
+  var fields = getFields(headerSec).slice(1); // skip "energy"
+  var pIdx = [];
+  var allIdx = fields.map(function(_, i) { return i; });
+  fields.forEach(function(f, i) { if (P_ORBS.has(f.toLowerCase())) pIdx.push(i); });
 
   // Find data start (second <set> in partial section)
-  const firstSet = partSec.indexOf("<set>");
-  const dataStart = partSec.indexOf("<set>", firstSet + 5);
-  const partData = partSec.substring(dataStart);
-  const allR = allRLines(partData);
+  var firstSet = partSec.indexOf("<set>");
+  var dataStart = partSec.indexOf("<set>", firstSet + 5);
+  var partData = partSec.substring(dataStart);
+  var allR = allRLines(partData);
 
-  const nSpins = Math.round(allR.length / (nTot * nE));
+  var nSpins = Math.round(allR.length / (nTot * nE));
   if (nSpins !== 1 && nSpins !== 2)
-    throw new Error("无法确定自旋通道数（PDOS行=" + allR.length + ", 原子=" + nTot + ", 能量点=" + nE + "）。");
+    throw new Error("spinCount");
 
   // Energy window mask
-  const mask = relE.map(e => e >= eMin && e <= eMax);
-  const selE = relE.filter((_, i) => mask[i]);
-  const selTotal = totalDos.filter((_, i) => mask[i]);
-  const idosTot = trapz(selTotal, selE);
-  if (idosTot === 0) throw new Error("总 DOS 积分为零。");
+  var mask = relE.map(function(e) { return e >= eMin && e <= eMax; });
+  var selE = relE.filter(function(_, i) { return mask[i]; });
+  var selTotal = totalDos.filter(function(_, i) { return mask[i]; });
+  var idosTot = trapz(selTotal, selE);
+  if (idosTot === 0) throw new Error("zeroIDOS");
 
   // Per-ion accumulation
-  let idosH = 0, idosHp = 0, idosX = 0;
-  for (let ion = 0; ion < nTot; ion++) {
-    const ionTotal = new Float64Array(nE);
-    const ionP = new Float64Array(nE);
-    for (let sp = 0; sp < nSpins; sp++) {
-      const base = (ion * nSpins + sp) * nE;
-      for (let e = 0; e < nE; e++) {
-        const row = allR[base + e];
+  var idosH = 0, idosHp = 0, idosX = 0;
+  // Arrays for DOS plotting (sum over all atoms by energy point)
+  var hDosByE = new Float64Array(nE);
+  var hPDosByE = new Float64Array(nE);
+  for (var ion = 0; ion < nTot; ion++) {
+    var ionTotal = new Float64Array(nE);
+    var ionP = new Float64Array(nE);
+    for (var sp = 0; sp < nSpins; sp++) {
+      var base = (ion * nSpins + sp) * nE;
+      for (var e = 0; e < nE; e++) {
+        var row = allR[base + e];
         if (!row) continue;
-        for (const oi of allIdx) ionTotal[e] += (row[oi + 1] || 0);
-        for (const pi of pIdx) ionP[e] += (row[pi + 1] || 0);
+        for (var oi = 0; oi < allIdx.length; oi++) ionTotal[e] += (row[allIdx[oi] + 1] || 0);
+        for (var pi = 0; pi < pIdx.length; pi++) ionP[e] += (row[pIdx[pi] + 1] || 0);
       }
     }
-    const selIon = Array.from(ionTotal).filter((_, i) => mask[i]);
-    const selIonP = Array.from(ionP).filter((_, i) => mask[i]);
-    const intAll = trapz(selIon, selE);
-    const intP = trapz(selIonP, selE);
-    if (atoms[ion] === "H") { idosH += intAll; idosHp += intP; }
-    else { idosX += intAll; }
+    var selIon = Array.from(ionTotal).filter(function(_, i) { return mask[i]; });
+    var selIonP = Array.from(ionP).filter(function(_, i) { return mask[i]; });
+    var intAll = trapz(selIon, selE);
+    var intP = trapz(selIonP, selE);
+    if (atoms[ion] === "H") {
+      idosH += intAll; idosHp += intP;
+      for (var e = 0; e < nE; e++) { hDosByE[e] += ionTotal[e]; hPDosByE[e] += ionP[e]; }
+    } else { idosX += intAll; }
   }
 
-  if (idosX === 0) throw new Error("非氢元素 DOS 积分为零。");
+  if (idosX === 0) throw new Error("zeroIDOSX");
 
   // Formula
-  const hAct = Math.sqrt(idosHp / nH) * (idosH / idosTot);
-  const dP = Math.cbrt(idosH / idosX) * pressure;
-  const tc = TC_A * hAct + TC_B * dP + TC_C;
-  const s = tc / Math.sqrt(TC_MGB2 ** 2 + pressure ** 2);
+  var hAct = Math.sqrt(idosHp / nH) * (idosH / idosTot);
+  var dP = Math.cbrt(idosH / idosX) * pressure;
+  var tc = TC_A * hAct + TC_B * dP + TC_C;
+  var s = tc / Math.sqrt(TC_MGB2 * TC_MGB2 + pressure * pressure);
 
   // Composition
-  const ec = {};
-  atoms.forEach(a => ec[a] = (ec[a]||0) + 1);
-  const composition = Object.entries(ec).map(([el,n]) => n > 1 ? el + n : el).join("");
+  var ec = {};
+  atoms.forEach(function(a) { ec[a] = (ec[a]||0) + 1; });
+  var composition = Object.entries(ec).map(function(pair) { return pair[1] > 1 ? pair[0] + pair[1] : pair[0]; }).join("");
 
   return {
-    filtered: false, composition, nTot, nH, pressure, efermi, bandgap,
-    idosTot, idosH, idosHp, idosX, tc, s, hAct, dP,
-    energyMin: eMin, energyMax: eMax
+    composition: composition, nTot: nTot, nH: nH,
+    pressure: pressure, efermi: efermi,
+    idosTot: idosTot, idosH: idosH, idosHp: idosHp, idosX: idosX,
+    tc: tc, s: s, hAct: hAct, dP: dP,
+    energyMin: eMin, energyMax: eMax,
+    energies: relE, totalDosArray: totalDos,
+    hDosArray: Array.from(hDosByE), hPDosArray: Array.from(hPDosByE)
   };
 }
 
@@ -578,7 +1021,6 @@ function displayResults(r) {
   $("resTc").innerHTML = r.tc.toFixed(2) + '<span class="stat-unit">K</span>';
   $("resS").textContent = r.s.toFixed(4);
   $("resP").innerHTML = r.pressure.toFixed(1) + '<span class="stat-unit">GPa</span>';
-  $("resEg").innerHTML = r.bandgap.toFixed(4) + '<span class="stat-unit">eV</span>';
   $("resEf").innerHTML = r.efermi.toFixed(3) + '<span class="stat-unit">eV</span>';
   $("resHact").textContent = r.hAct.toFixed(6);
   $("resDp").textContent = r.dP.toFixed(6);
@@ -592,13 +1034,168 @@ function displayResults(r) {
   $("formulaDetail").innerHTML =
     "&nbsp;&nbsp;&nbsp;= 3930.62 × " + r.hAct.toFixed(6) + " − 0.17 × " + r.dP.toFixed(6) + " − 4.69<br>";
   $("formulaResult").innerHTML = "&nbsp;&nbsp;&nbsp;= " + r.tc.toFixed(3) + " K";
+
+  // Let DOM layout settle before rendering chart
+  setTimeout(function() { plotDOS(r); }, 100);
+}
+
+// ===== Plot DOS =====
+function plotDOS(r) {
+  var chartEl = $("dosChart");
+  if (!chartEl) return;
+  // Show the chart container
+  chartEl.style.display = '';
+
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var pad = (r.energyMax - r.energyMin) * 0.1;
+  var plotMin = r.energyMin - pad;
+  var plotMax = r.energyMax + pad;
+
+  // Build plot data: line across full range, fill only inside integration window
+  var ePlot = [], tdosPlot = [], hDosPlot = [], hPDosPlot = [];
+  var tdosMask = [], hDosMask = [], hPDosMask = [];
+
+  // Helper: linear interpolation at target x
+  function interpAt(energies, values, target) {
+    if (target <= energies[0]) return values[0];
+    if (target >= energies[energies.length - 1]) return values[energies.length - 1];
+    for (var j = 1; j < energies.length; j++) {
+      if (energies[j] >= target) {
+        var t = (target - energies[j-1]) / (energies[j] - energies[j-1]);
+        return values[j-1] + t * (values[j] - values[j-1]);
+      }
+    }
+    return values[energies.length - 1];
+  }
+
+  // Insert edge points at Emin/Emax so fill snaps to exact window bounds
+  var needsMin = true, needsMax = true;
+  for (var i = 0; i < r.energies.length; i++) {
+    var e = r.energies[i];
+    if (e < plotMin || e > plotMax) continue;
+    // Insert Emin edge point just before the first point >= Emin
+    if (needsMin && e >= r.energyMin) {
+      var vTi = interpAt(r.energies, r.totalDosArray, r.energyMin);
+      var vHi = interpAt(r.energies, r.hDosArray, r.energyMin);
+      var vHpi = interpAt(r.energies, r.hPDosArray, r.energyMin);
+      ePlot.push(r.energyMin); tdosPlot.push(vTi); hDosPlot.push(vHi); hPDosPlot.push(vHpi);
+      tdosMask.push(vTi); hDosMask.push(vHi); hPDosMask.push(vHpi);
+      needsMin = false;
+    }
+    if (needsMax && e > r.energyMax) {
+      var vTi2 = interpAt(r.energies, r.totalDosArray, r.energyMax);
+      var vHi2 = interpAt(r.energies, r.hDosArray, r.energyMax);
+      var vHpi2 = interpAt(r.energies, r.hPDosArray, r.energyMax);
+      ePlot.push(r.energyMax); tdosPlot.push(vTi2); hDosPlot.push(vHi2); hPDosPlot.push(vHpi2);
+      tdosMask.push(vTi2); hDosMask.push(vHi2); hPDosMask.push(vHpi2);
+      needsMax = false;
+    }
+    ePlot.push(e);
+    var vT = r.totalDosArray[i], vH = r.hDosArray[i], vHp = r.hPDosArray[i];
+    tdosPlot.push(vT); hDosPlot.push(vH); hPDosPlot.push(vHp);
+    var inWin = e >= r.energyMin && e <= r.energyMax;
+    tdosMask.push(inWin ? vT : null);
+    hDosMask.push(inWin ? vH : null);
+    hPDosMask.push(inWin ? vHp : null);
+  }
+
+  var bgColor = isDark ? '#181825' : '#f4f6fb';
+  var gridColor = isDark ? 'rgba(49,50,68,0.5)' : 'rgba(216,220,232,0.8)';
+  var textColor = isDark ? '#a6adc8' : '#6c6f85';
+  var mutedFill = isDark ? 'rgba(166,173,200,0.2)' : 'rgba(108,111,133,0.13)';
+  var blueFill = 'rgba(30,64,175,0.22)';
+  var wineFill = 'rgba(128,0,32,0.25)';
+
+  // Each DOS component: fill-only trace (masked to window) + line-only trace (full)
+  var fillNone = { width: 0 };
+
+  var traceTotalFill = {
+    x: ePlot, y: tdosMask, type: 'scatter', mode: 'lines',
+    line: fillNone, fill: 'tozeroy', fillcolor: mutedFill,
+    showlegend: false, hoverinfo: 'none'
+  };
+  var traceTotalLine = {
+    x: ePlot, y: tdosPlot, type: 'scatter', mode: 'lines',
+    name: 'Total DOS',
+    line: { color: textColor, width: 1.5 }
+  };
+
+  var traceHFill = {
+    x: ePlot, y: hDosMask, type: 'scatter', mode: 'lines',
+    line: fillNone, fill: 'tozeroy', fillcolor: blueFill,
+    showlegend: false, hoverinfo: 'none'
+  };
+  var traceHLine = {
+    x: ePlot, y: hDosPlot, type: 'scatter', mode: 'lines',
+    name: 'H DOS',
+    line: { color: '#1e40af', width: 1.5 }
+  };
+
+  var traceHpFill = {
+    x: ePlot, y: hPDosMask, type: 'scatter', mode: 'lines',
+    line: fillNone, fill: 'tozeroy', fillcolor: wineFill,
+    showlegend: false, hoverinfo: 'none'
+  };
+  var traceHpLine = {
+    x: ePlot, y: hPDosPlot, type: 'scatter', mode: 'lines',
+    name: 'H p-DOS',
+    line: { color: '#800020', width: 1.5 }
+  };
+
+  var shapes = [
+    {
+      type: 'line', x0: 0, y0: 0, x1: 0, yref: 'paper', y1: 1,
+      line: { color: textColor, width: 1, dash: 'dash' }
+    },
+    {
+      type: 'rect', x0: r.energyMin, x1: r.energyMax,
+      yref: 'paper', y0: 0, y1: 1,
+      fillcolor: 'rgba(128,128,128,0.06)',
+      line: { width: 0 }
+    }
+  ];
+
+  var layout = {
+    paper_bgcolor: bgColor,
+    plot_bgcolor: bgColor,
+    font: { color: textColor, size: 12, family: 'Inter, sans-serif' },
+    autosize: true, height: 380,
+    margin: { t: 10, r: 20, b: 40, l: 55 },
+    xaxis: {
+      title: { text: 'E − E<sub>F</sub> (eV)', font: { size: 13 } },
+      gridcolor: gridColor, zeroline: false,
+      range: [plotMin, plotMax]
+    },
+    yaxis: {
+      title: { text: 'DOS (states/eV)', font: { size: 13 } },
+      gridcolor: gridColor, zeroline: false,
+      rangemode: 'tozero'
+    },
+    shapes: shapes,
+    legend: {
+      x: 0.02, y: 0.98, xanchor: 'left', yanchor: 'top',
+      bgcolor: isDark ? 'rgba(24,24,37,0.7)' : 'rgba(255,255,255,0.7)',
+      bordercolor: gridColor, borderwidth: 1,
+      font: { size: 12 }
+    },
+    hovermode: 'x unified'
+  };
+
+  var config = {
+    displayModeBar: false,
+    responsive: true
+  };
+
+  // Purge previous chart if any, then render
+  Plotly.purge(chartEl);
+  Plotly.newPlot(chartEl, [traceTotalFill, traceTotalLine, traceHFill, traceHLine, traceHpFill, traceHpLine], layout, config);
 }
 
 // ===== Download =====
 function downloadResults() {
-  const r = currentResults;
+  var r = currentResults;
   if (!r) return;
-  const txt = [
+  var txt = [
     "=".repeat(70),
     "Tc Prediction Results (Web Version)",
     "=".repeat(70), "",
@@ -612,7 +1209,6 @@ function downloadResults() {
     "  Fermi energy:   " + r.efermi.toFixed(6) + " eV", "",
     "Extracted Features:",
     "  Pressure (P):                           " + r.pressure.toFixed(1) + " GPa",
-    "  Band gap (Eg):                          " + r.bandgap.toFixed(6) + " eV",
     "  Total integrated DOS (IDOS_Tot):        " + r.idosTot.toFixed(6),
     "  Hydrogen integrated DOS (IDOS_H):       " + r.idosH.toFixed(6),
     "  Hydrogen p-orbital IDOS (IDOS_H_p):     " + r.idosHp.toFixed(6),
@@ -626,8 +1222,8 @@ function downloadResults() {
     "=".repeat(70)
   ].join("\n");
 
-  const blob = new Blob([txt], {type:"text/plain"});
-  const a = document.createElement("a");
+  var blob = new Blob([txt], {type:"text/plain"});
+  var a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "Tc_pred_" + r.composition + ".txt";
   a.click();
